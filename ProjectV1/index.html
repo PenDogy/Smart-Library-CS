@@ -1,0 +1,804 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Library & Circulation — Minimal UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans Thai', sans-serif;
+            background-color: #FAFAFA;
+            color: #18181B;
+        }
+
+        .nav-active {
+            background-color: #18181B;
+            color: #FFFFFF;
+        }
+
+        .nav-inactive {
+            color: #71717A;
+        }
+
+            .nav-inactive:hover {
+                background-color: #F4F4F5;
+                color: #18181B;
+            }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Bar: Mode Switcher -->
+    <header class="bg-white border-b border-zinc-200 px-6 py-3.5 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-zinc-900 text-white flex items-center justify-center font-semibold text-sm">SL</div>
+                <div>
+                    <span class="font-semibold text-sm tracking-tight">Smart Library</span>
+                    <span class="text-xs text-zinc-400 ml-2 border-l border-zinc-200 pl-2">Circulation System</span>
+                </div>
+            </div>
+
+            <!-- Role Switcher Pill -->
+            <div class="flex items-center bg-zinc-100 p-1 rounded-xl border border-zinc-200/80">
+                <button onclick="switchRole('member')" id="role-btn-member" class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all bg-white text-zinc-900 shadow-sm">
+                    มุมมองผู้ยืม (Member)
+                </button>
+                <button onclick="switchRole('staff')" id="role-btn-staff" class="px-4 py-1.5 rounded-lg text-xs font-medium transition-all text-zinc-500 hover:text-zinc-900">
+                    มุมมองบรรณารักษ์ / แอดมิน (Staff)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 hidden max-w-md rounded-xl p-4 text-xs font-medium shadow-lg border transition-all flex items-center justify-between gap-4">
+        <span id="toast-msg"></span>
+        <button onclick="hideToast()" class="opacity-70 hover:opacity-100 underline shrink-0">ปิด</button>
+    </div>
+
+    <!-- VIEW 1: MEMBER PORTAL -->
+    <div id="view-member" class="flex-1 max-w-6xl w-full mx-auto p-6 md:p-8 space-y-8">
+        <div class="bg-white border border-zinc-200 rounded-2xl p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] uppercase tracking-wider text-zinc-400 font-mono">Active Member Session</span>
+                    <span id="mem-badge-type" class="text-[11px] bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded font-medium"></span>
+                </div>
+                <div class="flex items-center gap-3 pt-1">
+                    <label class="text-xs text-zinc-500">สลับผู้ใช้งานจำลอง:</label>
+                    <select id="active-member-select" onchange="onMemberSessionChange()" class="text-sm font-semibold bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-zinc-900"></select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 border-t lg:border-t-0 pt-4 lg:pt-0 border-zinc-100">
+                <div class="bg-zinc-50 rounded-xl px-4 py-2.5 border border-zinc-200/60">
+                    <p class="text-[11px] text-zinc-400">โควตายืมคงเหลือ</p>
+                    <p id="mem-stat-quota" class="text-base font-semibold font-mono mt-0.5">0 / 0</p>
+                </div>
+                <div class="bg-zinc-50 rounded-xl px-4 py-2.5 border border-zinc-200/60">
+                    <p class="text-[11px] text-zinc-400">ยืมได้สูงสุดไม่เกิน</p>
+                    <p id="mem-stat-days" class="text-base font-semibold font-mono mt-0.5">0 วัน</p>
+                </div>
+                <div class="bg-zinc-50 rounded-xl px-4 py-2.5 border border-zinc-200/60">
+                    <p class="text-[11px] text-zinc-400">ค่าปรับค้างชำระ</p>
+                    <p id="mem-stat-fine" class="text-base font-semibold font-mono mt-0.5">0 ฿</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <input type="text" id="member-search-input" oninput="catalogCurrentPage = 1; renderMemberCatalog()" placeholder="ค้นหาชื่อหนังสือ ผู้แต่ง หรือ รหัสหนังสือ..." class="w-full bg-white border border-zinc-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-zinc-900 transition">
+                <svg class="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <div class="sm:w-64">
+                <select id="member-category-filter" onchange="catalogCurrentPage = 1; renderMemberCatalog()" class="w-full bg-white border border-zinc-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-zinc-900"></select>
+            </div>
+        </div>
+
+        <div>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold">รายการหนังสือในห้องสมุด (Books Catalog)</h3>
+                <span id="catalog-count" class="text-xs text-zinc-400"></span>
+            </div>
+            <div id="member-book-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+            <div id="catalog-pagination" class="flex flex-wrap justify-center items-center gap-2 mt-6"></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-4 border-t border-zinc-200">
+            <div class="lg:col-span-7 bg-white border border-zinc-200 rounded-2xl p-6">
+                <h3 class="text-sm font-semibold mb-1">หนังสือที่ฉันกำลังยืม (My Active Borrowings)</h3>
+                <div class="overflow-x-auto mt-4">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-zinc-200 text-[11px] text-zinc-400 uppercase">
+                                <th class="py-2 font-medium">รหัสตัวเล่ม</th>
+                                <th class="py-2 font-medium">ชื่อหนังสือ</th>
+                                <th class="py-2 font-medium">วันที่ยืม</th>
+                                <th class="py-2 font-medium text-right">กำหนดคืน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="member-my-borrows" class="divide-y divide-zinc-100 text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="lg:col-span-5 bg-white border border-zinc-200 rounded-2xl p-6">
+                <h3 class="text-sm font-semibold mb-1">รายการจองคิว & ค่าปรับของฉัน</h3>
+                <div id="member-my-alerts" class="space-y-2.5 text-xs mt-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: BORROW CONFIRMATION -->
+    <div id="borrow-modal" class="fixed inset-0 z-50 hidden bg-zinc-900/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+        <div class="bg-white border border-zinc-200 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div class="flex items-start justify-between border-b border-zinc-100 pb-3.5">
+                <div>
+                    <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-100 text-zinc-600">WCF borrowBook</span>
+                    <h3 class="text-base font-semibold mt-1">ยืนยันรายการยืมหนังสือ</h3>
+                </div>
+                <button onclick="closeBorrowModal()" class="text-zinc-400 hover:text-zinc-700 text-lg leading-none">&times;</button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div class="bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/70 space-y-1.5">
+                    <p id="modal-book-title" class="text-sm font-semibold text-zinc-900"></p>
+                    <div class="flex items-center justify-between pt-1 text-zinc-500">
+                        <span>หมวดหมู่: <strong id="modal-book-cat" class="font-medium text-zinc-700"></strong></span>
+                        <span>ตัวเล่ม: <strong id="modal-copy-id" class="font-mono text-zinc-900"></strong></span>
+                    </div>
+                </div>
+                <div class="bg-white border border-zinc-200 rounded-xl p-3.5 space-y-2">
+                    <label for="modal-days-select" class="font-medium text-zinc-700">เลือกระยะเวลาที่ต้องการยืม:</label>
+                    <select id="modal-days-select" onchange="updateModalDueDate()" class="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-medium"></select>
+                </div>
+                <div class="bg-zinc-900 text-white p-4 rounded-xl flex items-center justify-between">
+                    <div>
+                        <p class="text-[11px] text-zinc-400">วันที่ยืม</p>
+                        <p id="modal-borrow-date" class="font-mono text-xs mt-0.5">2026-10-18</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[11px] text-zinc-300">วันกำหนดส่งคืน</p>
+                        <p id="modal-due-date" class="font-mono text-base font-semibold text-emerald-400 mt-0.5"></p>
+                    </div>
+                </div>
+                <div id="modal-error-box" class="hidden bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-3 text-xs"></div>
+                <label class="flex items-start gap-2.5 p-3 rounded-xl bg-zinc-50 border border-zinc-200/80 cursor-pointer">
+                    <input type="checkbox" id="modal-agree-checkbox" onchange="updateConfirmButtonState()" class="mt-0.5">
+                    <span class="text-[11px] text-zinc-600">ยอมรับเงื่อนไขและค่าปรับ 10 บาท/วัน หากคืนเกินกำหนด</span>
+                </label>
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+                <button onclick="closeBorrowModal()" class="px-4 py-2 rounded-xl border border-zinc-200 text-xs">ยกเลิก</button>
+                <button id="modal-confirm-btn" onclick="confirmModalBorrow()" disabled class="px-5 py-2 rounded-xl bg-zinc-200 text-zinc-400 text-xs cursor-not-allowed">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: STAFF PORTAL -->
+    <div id="view-staff" class="hidden flex-1 flex flex-col md:flex-row max-w-7xl w-full mx-auto">
+        <aside class="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-zinc-200 p-5 shrink-0 flex flex-col justify-between">
+            <nav class="space-y-1">
+                <p class="text-[10px] font-mono uppercase tracking-wider text-zinc-400 px-3 mb-2">Admin Console</p>
+                <button onclick="switchStaffTab('desk')" id="st-nav-desk" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-medium nav-active">เคาน์เตอร์รับคืน</button>
+                <button onclick="switchStaffTab('books')" id="st-nav-books" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-medium nav-inactive">จัดการคลังหนังสือ (+เพิ่ม)</button>
+                <button onclick="switchStaffTab('members')" id="st-nav-members" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-medium nav-inactive">จัดการสมาชิก (+เพิ่ม)</button>
+                <button onclick="switchStaffTab('report')" id="st-nav-report" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-medium nav-inactive">รายงาน & ค่าปรับ</button>
+            </nav>
+        </aside>
+        <main class="flex-1 p-6 md:p-8 space-y-6">
+
+            <!-- Staff Tab 1: Desk -->
+            <div id="st-tab-desk" class="space-y-6">
+                <div class="bg-white border border-zinc-200 rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold mb-4">รายการกำลังยืม & รับคืนหนังสือ</h3>
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-zinc-200 text-[11px] text-zinc-400 uppercase">
+                                <th class="py-2.5">รหัสยืม</th>
+                                <th class="py-2.5">ตัวเล่ม</th>
+                                <th class="py-2.5">ผู้ยืม</th>
+                                <th class="py-2.5">กำหนดคืน</th>
+                                <th class="py-2.5 text-right">รับคืน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-active-borrows" class="divide-y divide-zinc-100 text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Staff Tab 2: Books & Add Book -->
+            <div id="st-tab-books" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-4 bg-white border border-zinc-200 rounded-2xl p-6 space-y-3 h-fit">
+                        <h3 class="text-sm font-semibold">เพิ่มหนังสือใหม่</h3>
+                        <input type="text" id="new-book-title" placeholder="ชื่อหนังสือ" class="w-full border rounded-lg px-3 py-2 text-xs">
+                        <input type="text" id="new-book-author" placeholder="ผู้แต่ง" class="w-full border rounded-lg px-3 py-2 text-xs">
+                        <select id="new-book-cat" class="w-full border rounded-lg px-3 py-2 text-xs"></select>
+                        <input type="text" id="new-book-shelf" placeholder="ชั้นวาง (เช่น A1-01)" value="A1-01" class="w-full border rounded-lg px-3 py-2 text-xs">
+                        <input type="number" id="new-book-copies" placeholder="จำนวนตัวเล่ม" value="2" min="1" max="5" class="w-full border rounded-lg px-3 py-2 text-xs">
+                        <button onclick="adminAddBook()" class="w-full bg-zinc-900 text-white rounded-xl py-2 text-xs font-medium">+ เพิ่มหนังสือ</button>
+                    </div>
+                    <div class="lg:col-span-8 bg-white border border-zinc-200 rounded-2xl p-6">
+                        <h3 class="text-sm font-semibold mb-4">ตัวเล่มทั้งหมดในระบบ</h3>
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-zinc-200 text-[11px] text-zinc-400 uppercase">
+                                    <th class="py-2.5">Copy ID</th>
+                                    <th class="py-2.5">ชื่อหนังสือ</th>
+                                    <th class="py-2.5 text-right">สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-copies-tbody" class="divide-y divide-zinc-100 text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff Tab 3: Members & Add Member -->
+            <div id="st-tab-members" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <div class="lg:col-span-4 bg-white border border-zinc-200 rounded-2xl p-6 space-y-3 h-fit">
+                        <h3 class="text-sm font-semibold">ลงทะเบียนสมาชิกใหม่</h3>
+                        <input type="text" id="new-mem-name" placeholder="ชื่อ-นามสกุล" class="w-full border rounded-lg px-3 py-2 text-xs">
+                        <select id="new-mem-type" class="w-full border rounded-lg px-3 py-2 text-xs"></select>
+                        <button onclick="adminAddMember()" class="w-full bg-zinc-900 text-white rounded-xl py-2 text-xs font-medium">+ ลงทะเบียนสมาชิก</button>
+                    </div>
+                    <div class="lg:col-span-8 bg-white border border-zinc-200 rounded-2xl p-6">
+                        <h3 class="text-sm font-semibold mb-4">รายชื่อสมาชิกทั้งหมด</h3>
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-zinc-200 text-[11px] text-zinc-400 uppercase">
+                                    <th class="py-2.5">รหัส</th>
+                                    <th class="py-2.5">ชื่อ-นามสกุล</th>
+                                    <th class="py-2.5 text-right">ค่าปรับค้างชำระ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-members-tbody" class="divide-y divide-zinc-100 text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Staff Tab 4: Report -->
+            <div id="st-tab-report" class="hidden space-y-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white border border-zinc-200 rounded-2xl p-5">
+                        <p class="text-xs text-zinc-500">ค่าปรับทั้งหมด</p>
+                        <p id="report-grand-total" class="text-2xl font-semibold mt-2">0.00 ฿</p>
+                    </div>
+                    <div class="bg-white border border-amber-200 rounded-2xl p-5">
+                        <p class="text-xs text-amber-700">ค้างชำระ (Unpaid)</p>
+                        <p id="report-unpaid-total" class="text-2xl font-semibold text-amber-700 mt-2">0.00 ฿</p>
+                    </div>
+                    <div class="bg-white border border-emerald-200 rounded-2xl p-5">
+                        <p class="text-xs text-emerald-700">ชำระแล้ว (Paid)</p>
+                        <p id="report-paid-total" class="text-2xl font-semibold text-emerald-700 mt-2">0.00 ฿</p>
+                    </div>
+                </div>
+                <div class="bg-white border border-zinc-200 rounded-2xl p-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="text-sm font-semibold">รายงานค่าปรับ</h3>
+                            <p class="text-xs text-zinc-400 mt-1">ตรวจสอบสถานะและยืนยันการชำระค่าปรับของสมาชิก</p>
+                        </div>
+                        <button onclick="loadDataFromBackend()" class="px-3 py-2 border border-zinc-200 rounded-lg text-xs hover:bg-zinc-50">รีเฟรชข้อมูล</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[680px]">
+                            <thead>
+                                <tr class="border-b border-zinc-200 text-[11px] text-zinc-400 uppercase">
+                                    <th class="py-2.5">รหัสค่าปรับ</th>
+                                    <th class="py-2.5">สมาชิก</th>
+                                    <th class="py-2.5">รายการ</th>
+                                    <th class="py-2.5 text-right">ยอดค่าปรับ</th>
+                                    <th class="py-2.5 text-center">สถานะ</th>
+                                    <th class="py-2.5 text-right">การดำเนินการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staff-report-tbody" class="divide-y divide-zinc-100 text-xs"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+            // WCF REST endpoint. The page may be hosted on a different port/origin.
+            const API_BASE = "https://localhost:44329/dbService.svc/";
+            const FINE_RATE = 10;
+
+            let currentRole = "member";
+            let selectedBookForModal = null;
+
+            // Books Catalog pagination: 10 books per page
+            let catalogCurrentPage = 1;
+            const CATALOG_PAGE_SIZE = 10;
+            let db = {
+              categories: [], books: [], bookCopies: [], memberTypes: [],
+              members: [], borrowings: [], fines: [], reservations: []
+            };
+
+            const $ = id => document.getElementById(id);
+            const today = () => new Date().toISOString().slice(0, 10);
+            const isReturned = b => !!(b.returnDate && b.returnDate !== "");
+            const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({
+              "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+            }[ch]));
+
+            async function apiGet(method) {
+              const response = await fetch(API_BASE + method, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+              });
+              if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+              return response.json();
+            }
+
+            async function apiPost(method, payload) {
+              const response = await fetch(API_BASE + method, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json; charset=utf-8",
+                  "Accept": "application/json"
+                },
+                body: JSON.stringify(payload)
+              });
+              const body = await response.text();
+              if (!response.ok) throw new Error(`HTTP ${response.status}: ${body}`);
+              try { return body ? JSON.parse(body) : ""; }
+              catch { return body; }
+            }
+
+            function normalizeData(raw) {
+              // Matches the DTO JSON names from LibraryDataDTO.cs
+              const members = (raw.members || []).map(m => ({
+                ...m,
+                name: m.name || [m.firstName, m.lastName].filter(Boolean).join(" "),
+                typeId: m.typeId || m.memberTypeId
+              }));
+              const memberTypes = (raw.memberTypes || []).map(t => ({
+                ...t,
+                name: t.name || t.description || t.typeId
+              }));
+              const borrowings = (raw.borrowings || []).map(b => ({
+                ...b,
+                returnDate: b.returnDate || null
+              }));
+              // Fine rows do not contain MemberId in the supplied SQL schema.
+              // Resolve the member through Borrowing.Fine_Id.
+              const fines = (raw.fines || []).map(f => {
+                const fineId = f.fineId ?? f.FineId ?? f.fine_id;
+                const linkedBorrow = borrowings.find(b => String(b.fineId ?? b.FineId ?? b.fine_id) === String(fineId));
+                const rawStatus = String(f.status ?? f.Status ?? "Unpaid").trim();
+                const status = /^paid$/i.test(rawStatus) ? "Paid" : "Unpaid";
+                return {
+                  ...f,
+                  fineId,
+                  amount: Number(f.amount ?? f.Amount ?? 0),
+                  note: f.note ?? f.Note ?? "ค่าปรับ",
+                  status,
+                  memberId: f.memberId ?? f.MemberId ?? linkedBorrow?.memberId ?? linkedBorrow?.MemberId ?? null
+                };
+              });
+              return {
+                categories: raw.categories || [],
+                books: raw.books || [],
+                bookCopies: raw.bookCopies || [],
+                memberTypes,
+                members,
+                borrowings,
+                fines,
+                reservations: raw.reservations || []
+              };
+            }
+
+            async function loadDataFromBackend() {
+              try {
+                const raw = await apiGet("getData");
+                db = normalizeData(raw);
+                initFilters();
+                renderAll();
+                showToast("เชื่อมต่อ WCF API สำเร็จ");
+              } catch (err) {
+                console.error("WCF getLibraryData failed:", err);
+                showToast("โหลดข้อมูลจาก WCF ไม่สำเร็จ: " + err.message, true);
+              }
+            }
+
+            function diffDays(d1, d2) {
+              return Math.floor((new Date(d2) - new Date(d1)) / 86400000);
+            }
+            function addDays(dateStr, days) {
+              const d = new Date(dateStr + "T00:00:00");
+              d.setDate(d.getDate() + Number(days));
+              return d.toISOString().slice(0, 10);
+            }
+            function getActiveMemberId() {
+              return $("active-member-select").value || "";
+            }
+            function getMemberUnpaidFine(memberId) {
+              return db.fines.filter(f => String(f.memberId) === String(memberId) && String(f.status).toLowerCase() === "unpaid")
+                .reduce((sum, f) => sum + Number(f.amount || 0), 0);
+            }
+            function getMemberActiveBorrows(memberId) {
+              return db.borrowings.filter(b => b.memberId === memberId && !isReturned(b));
+            }
+            function getBookByCopy(copyId) {
+              const copy = db.bookCopies.find(c => c.copyId === copyId) || {};
+              return db.books.find(b => b.id === copy.bookId) || { title: "ไม่พบชื่อหนังสือ" };
+            }
+
+            function showToast(msg, isError = false) {
+              const t = $("toast");
+              $("toast-msg").textContent = msg;
+              t.className = `fixed bottom-5 right-5 z-50 max-w-md rounded-xl p-4 text-xs font-medium shadow-lg border flex items-center justify-between gap-4 ${isError ? "bg-rose-50 border-rose-200 text-rose-800" : "bg-zinc-900 text-white"}`;
+              t.classList.remove("hidden");
+              setTimeout(hideToast, 5000);
+            }
+            function hideToast() { $("toast").classList.add("hidden"); }
+
+            function switchRole(role) {
+              currentRole = role;
+              $("view-member").classList.toggle("hidden", role !== "member");
+              $("view-staff").classList.toggle("hidden", role !== "staff");
+              $("role-btn-member").className = role === "member"
+                ? "px-4 py-1.5 rounded-lg text-xs font-medium transition-all bg-white text-zinc-900 shadow-sm"
+                : "px-4 py-1.5 rounded-lg text-xs font-medium text-zinc-500";
+              $("role-btn-staff").className = role === "staff"
+                ? "px-4 py-1.5 rounded-lg text-xs font-medium transition-all bg-white text-zinc-900 shadow-sm"
+                : "px-4 py-1.5 rounded-lg text-xs font-medium text-zinc-500";
+              renderAll();
+            }
+
+            function switchStaffTab(tab) {
+              ["desk", "books", "members", "report"].forEach(t => {
+                $("st-tab-" + t).classList.toggle("hidden", t !== tab);
+                $("st-nav-" + t).className = `w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-medium ${t === tab ? "nav-active" : "nav-inactive"}`;
+              });
+              renderAll();
+            }
+            function onMemberSessionChange() { renderAll(); }
+
+            function populateMemberDropdown() {
+              const select = $("active-member-select");
+              const previous = select.value;
+              select.innerHTML = db.members.map(m =>
+                `<option value="${esc(m.id)}">${esc(m.id)} — ${esc(m.name)}</option>`
+              ).join("");
+              if (db.members.some(m => m.id === previous)) select.value = previous;
+            }
+
+            function initFilters() {
+              populateMemberDropdown();
+              $("member-category-filter").innerHTML =
+                `<option value="ALL">ทุกหมวดหมู่</option>` +
+                db.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+              $("new-book-cat").innerHTML =
+                db.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+              $("new-mem-type").innerHTML =
+                db.memberTypes.map(t => `<option value="${esc(t.typeId)}">${esc(t.name)}</option>`).join("");
+            }
+
+            function renderMemberCatalog() {
+              const memberId = getActiveMemberId();
+              const member = db.members.find(m => m.id === memberId) || {};
+              const type = db.memberTypes.find(t => t.typeId === member.typeId) || { name: "-", maxQuota: 0, loanDays: 7 };
+              const active = getMemberActiveBorrows(memberId);
+              const fine = getMemberUnpaidFine(memberId);
+              $("mem-badge-type").textContent = type.name || "-";
+              const maxQuota = Number(type.maxQuota || 0);
+              $("mem-stat-quota").textContent = `${Math.max(0, maxQuota - active.length)} / ${maxQuota}`;
+              $("mem-stat-days").textContent = `${type.loanDays || 7} วัน`;
+              $("mem-stat-fine").textContent = `${fine.toFixed(2)} ฿`;
+
+              const search = $("member-search-input").value.trim().toLowerCase();
+              const category = $("member-category-filter").value;
+              const filtered = db.books.filter(b => {
+                const matchText = [b.id, b.title, b.author].some(v =>
+                  String(v || "").toLowerCase().includes(search)
+                );
+                return matchText && (category === "ALL" || String(b.categoryId) === String(category));
+              });
+
+              // Calculate page range and keep the current page valid after filtering.
+              const totalBooks = filtered.length;
+              const totalPages = Math.ceil(totalBooks / CATALOG_PAGE_SIZE);
+              if (totalPages === 0) catalogCurrentPage = 1;
+              else if (catalogCurrentPage > totalPages) catalogCurrentPage = totalPages;
+
+              const startIndex = (catalogCurrentPage - 1) * CATALOG_PAGE_SIZE;
+              const paginatedBooks = filtered.slice(startIndex, startIndex + CATALOG_PAGE_SIZE);
+
+              $("catalog-count").textContent = totalBooks
+                ? `${totalBooks} รายการ | หน้า ${catalogCurrentPage} / ${totalPages}`
+                : "0 รายการ";
+
+              $("member-book-grid").innerHTML = paginatedBooks.map(b => {
+                const available = db.bookCopies.filter(c =>
+                  String(c.bookId) === String(b.id) && String(c.status).toLowerCase() === "available"
+                );
+                return `<div class="bg-white border border-zinc-200 rounded-2xl p-5 flex flex-col justify-between">
+                  <div><span class="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-100">${esc(b.id)}</span>
+                  <h4 class="font-semibold text-sm mt-2">${esc(b.title)}</h4>
+                  <p class="text-xs text-zinc-400">${esc(b.author)}</p></div>
+                  <div class="mt-4 flex items-center justify-between">
+                  <span class="text-xs ${available.length ? "text-emerald-600" : "text-rose-600"}">${available.length ? `ว่าง ${available.length} เล่ม` : "หมด"}</span>
+                  ${available.length ? `<button onclick="openBorrowModal('${esc(b.id)}')" class="px-3 py-1.5 bg-zinc-900 text-white rounded-xl text-xs">ยืมหนังสือ</button>` : ""}
+                  </div></div>`;
+              }).join("") || `<p class="text-xs text-zinc-400">ไม่พบหนังสือ</p>`;
+
+              renderCatalogPagination(totalPages);
+
+              $("member-my-borrows").innerHTML = active.map(b => {
+                const book = getBookByCopy(b.copyId);
+                return `<tr><td class="py-2">${esc(b.copyId)}</td><td class="py-2">${esc(book.title)}</td>
+                  <td class="py-2">${esc(b.borrowDate)}</td><td class="py-2 text-right">${esc(b.dueDate)}</td></tr>`;
+              }).join("") || `<tr><td colspan="4" class="py-4 text-center text-zinc-400">ไม่มีรายการยืม</td></tr>`;
+
+              const myReservations = db.reservations.filter(r => r.memberId === memberId);
+              const myFines = db.fines.filter(f => f.memberId === memberId);
+              $("member-my-alerts").innerHTML = [
+                ...myReservations.map(r => `<div class="p-3 rounded-lg bg-zinc-50 border border-zinc-100">จองตัวเล่ม ${esc(r.copyId)} · ${esc(r.status)}</div>`),
+                ...myFines.map(f => `<div class="p-3 rounded-lg bg-zinc-50 border border-zinc-100">ค่าปรับ ${Number(f.amount).toFixed(2)} ฿ · ${esc(f.status)}</div>`)
+              ].join("") || `<p class="text-zinc-400">ไม่มีรายการจองหรือค่าปรับ</p>`;
+            }
+
+            function changeCatalogPage(page) {
+              const search = $("member-search-input").value.trim().toLowerCase();
+              const category = $("member-category-filter").value;
+              const totalBooks = db.books.filter(b => {
+                const matchText = [b.id, b.title, b.author].some(v =>
+                  String(v || "").toLowerCase().includes(search)
+                );
+                return matchText && (category === "ALL" || String(b.categoryId) === String(category));
+              }).length;
+              const totalPages = Math.ceil(totalBooks / CATALOG_PAGE_SIZE);
+              if (page < 1 || page > totalPages) return;
+              catalogCurrentPage = page;
+              renderMemberCatalog();
+              $("member-book-grid").scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+
+            function renderCatalogPagination(totalPages) {
+              const container = $("catalog-pagination");
+              if (!container) return;
+              if (totalPages <= 1) {
+                container.innerHTML = "";
+                return;
+              }
+
+              let html = `<button onclick="changeCatalogPage(${catalogCurrentPage - 1})"
+                ${catalogCurrentPage === 1 ? "disabled" : ""}
+                class="px-3 py-2 rounded-lg border text-xs ${catalogCurrentPage === 1 ? "border-zinc-100 text-zinc-300 cursor-not-allowed" : "border-zinc-200 text-zinc-600 hover:bg-zinc-100"}">ก่อนหน้า</button>`;
+
+              const pages = [];
+              for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || Math.abs(i - catalogCurrentPage) <= 2) pages.push(i);
+              }
+
+              let previousPage = 0;
+              for (const page of pages) {
+                if (previousPage && page - previousPage > 1) {
+                  html += `<span class="px-1 text-zinc-400 text-xs">...</span>`;
+                }
+                html += `<button onclick="changeCatalogPage(${page})"
+                  aria-current="${page === catalogCurrentPage ? "page" : "false"}"
+                  class="min-w-9 px-3 py-2 rounded-lg border text-xs ${page === catalogCurrentPage ? "bg-zinc-900 border-zinc-900 text-white" : "border-zinc-200 text-zinc-600 hover:bg-zinc-100"}">${page}</button>`;
+                previousPage = page;
+              }
+
+              html += `<button onclick="changeCatalogPage(${catalogCurrentPage + 1})"
+                ${catalogCurrentPage === totalPages ? "disabled" : ""}
+                class="px-3 py-2 rounded-lg border text-xs ${catalogCurrentPage === totalPages ? "border-zinc-100 text-zinc-300 cursor-not-allowed" : "border-zinc-200 text-zinc-600 hover:bg-zinc-100"}">ถัดไป</button>`;
+              container.innerHTML = html;
+            }
+
+            function openBorrowModal(bookId) {
+              const book = db.books.find(b => b.id === bookId);
+              const copy = db.bookCopies.find(c => c.bookId === bookId && c.status === "Available");
+              if (!copy) return;
+              selectedBookForModal = { book, targetCopy: copy };
+              $("modal-book-title").textContent = book.title;
+              $("modal-book-cat").textContent = (db.categories.find(c => c.id === book.categoryId) || {}).name || "-";
+              $("modal-copy-id").textContent = copy.copyId;
+              const member = db.members.find(m => m.id === getActiveMemberId()) || {};
+              const type = db.memberTypes.find(t => t.typeId === member.typeId) || {};
+              const days = Number(type.loanDays || 7);
+              $("modal-days-select").innerHTML = `<option value="${days}">${days} วัน</option>`;
+              $("modal-borrow-date").textContent = today();
+              $("modal-agree-checkbox").checked = false;
+              $("modal-error-box").classList.add("hidden");
+              updateConfirmButtonState();
+              updateModalDueDate();
+              $("borrow-modal").classList.remove("hidden");
+            }
+
+            function updateModalDueDate() {
+              const days = Number($("modal-days-select").value || 7);
+              $("modal-due-date").textContent = addDays(today(), days);
+            }
+            function updateConfirmButtonState() {
+              const agreed = $("modal-agree-checkbox").checked;
+              const btn = $("modal-confirm-btn");
+              btn.disabled = !agreed;
+              btn.className = agreed
+                ? "px-5 py-2 rounded-xl bg-zinc-900 text-white text-xs"
+                : "px-5 py-2 rounded-xl bg-zinc-200 text-zinc-400 text-xs cursor-not-allowed";
+            }
+            function closeBorrowModal() { $("borrow-modal").classList.add("hidden"); }
+
+            async function confirmModalBorrow() {
+              if (!selectedBookForModal) return;
+              const memberId = getActiveMemberId();
+              const days = Number($("modal-days-select").value || 7);
+              try {
+                const result = await apiPost("borrowBook", {
+                  MemberId: memberId,
+                  CopyId: selectedBookForModal.targetCopy.copyId,
+                  Days: days
+                });
+                const message = typeof result === "string" ? result : JSON.stringify(result);
+                if (!/successful|success|สำเร็จ/i.test(message)) throw new Error(message || "ยืมหนังสือไม่สำเร็จ");
+                closeBorrowModal();
+                showToast("ยืมหนังสือสำเร็จ");
+                await loadDataFromBackend();
+              } catch (err) {
+                $("modal-error-box").textContent = err.message;
+                $("modal-error-box").classList.remove("hidden");
+                showToast("ยืมหนังสือไม่สำเร็จ: " + err.message, true);
+              }
+            }
+
+            function renderStaffPortal() {
+              const active = db.borrowings.filter(b => !isReturned(b));
+              $("staff-active-borrows").innerHTML = active.map(b => {
+                const member = db.members.find(m => m.id === b.memberId) || { name: "-" };
+                const book = getBookByCopy(b.copyId);
+                return `<tr><td class="py-2">${esc(b.borrowId)}</td><td class="py-2">${esc(b.copyId)} (${esc(book.title)})</td>
+                  <td class="py-2">${esc(member.name)}</td><td class="py-2">${esc(b.dueDate)}</td>
+                  <td class="py-2 text-right"><button onclick="staffReturnBook('${esc(b.borrowId)}')" class="px-2.5 py-1 bg-zinc-900 text-white rounded text-xs">รับคืน</button></td></tr>`;
+              }).join("") || `<tr><td colspan="5" class="py-4 text-center text-zinc-400">ไม่มีรายการยืมค้างอยู่</td></tr>`;
+
+              $("staff-copies-tbody").innerHTML = db.bookCopies.map(c => {
+                const book = db.books.find(b => b.id === c.bookId) || {};
+                return `<tr><td class="py-2">${esc(c.copyId)}</td><td class="py-2">${esc(book.title)}</td><td class="py-2 text-right">${esc(c.status)}</td></tr>`;
+              }).join("");
+
+              $("staff-members-tbody").innerHTML = db.members.map(m =>
+                `<tr><td class="py-2">${esc(m.id)}</td><td class="py-2">${esc(m.name)}</td><td class="py-2 text-right">${getMemberUnpaidFine(m.id).toFixed(2)} ฿</td></tr>`
+              ).join("");
+
+              renderFineReport();
+            }
+
+            function renderFineReport() {
+              const total = db.fines.reduce((sum, f) => sum + Number(f.amount || 0), 0);
+              const unpaid = db.fines.filter(f => String(f.status).toLowerCase() === "unpaid")
+                .reduce((sum, f) => sum + Number(f.amount || 0), 0);
+              const paid = db.fines.filter(f => String(f.status).toLowerCase() === "paid")
+                .reduce((sum, f) => sum + Number(f.amount || 0), 0);
+
+              $("report-grand-total").textContent = `${total.toFixed(2)} ฿`;
+              $("report-unpaid-total").textContent = `${unpaid.toFixed(2)} ฿`;
+              $("report-paid-total").textContent = `${paid.toFixed(2)} ฿`;
+
+              $("staff-report-tbody").innerHTML = db.fines.map(f => {
+                const member = db.members.find(m => String(m.id) === String(f.memberId)) || { name: "ไม่ระบุ/ไม่มี Borrowing link" };
+                const isPaid = String(f.status).toLowerCase() === "paid";
+                const statusBadge = isPaid
+                  ? `<span class="inline-flex px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700">Paid</span>`
+                  : `<span class="inline-flex px-2.5 py-1 rounded-full bg-amber-50 text-amber-700">Unpaid</span>`;
+                const action = isPaid
+                  ? `<span class="text-emerald-700 font-medium">ชำระแล้ว</span>`
+                  : `<button type="button" data-fine-id="${esc(f.fineId)}" onclick="updateFineStatus(this)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium">ยืนยันชำระแล้ว</button>`;
+                return `<tr>
+                  <td class="py-3 pr-3">${esc(f.fineId ?? "-")}</td>
+                  <td class="py-3 pr-3">${esc(member.name)}</td>
+                  <td class="py-3 pr-3">${esc(f.note)}</td>
+                  <td class="py-3 text-right font-semibold">${Number(f.amount || 0).toFixed(2)} ฿</td>
+                  <td class="py-3 text-center">${statusBadge}</td>
+                  <td class="py-3 text-right">${action}</td>
+                </tr>`;
+              }).join("") || `<tr><td colspan="6" class="py-5 text-center text-zinc-400">ไม่มีรายการค่าปรับ</td></tr>`;
+            }
+
+            // This action persists the payment status through the WCF endpoint.
+            // The endpoint must update the Fine table in SQL Server before returning success.
+            async function updateFineStatus(button) {
+              const fineId = button?.dataset?.fineId;
+              if (!fineId) {
+                showToast("ไม่พบรหัสค่าปรับ", true);
+                return;
+              }
+              const fine = db.fines.find(f => String(f.fineId) === String(fineId));
+              if (!fine) {
+                showToast("ไม่พบรายการค่าปรับนี้ กรุณารีเฟรชข้อมูล", true);
+                return;
+              }
+              if (String(fine.status).toLowerCase() === "paid") {
+                showToast("รายการนี้ชำระแล้ว ไม่สามารถชำระซ้ำได้", true);
+                return;
+              }
+              const member = db.members.find(m => String(m.id) === String(fine.memberId));
+              const memberName = member?.name || "สมาชิก";
+              if (!confirm(`ยืนยันรับชำระค่าปรับ ${Number(fine.amount || 0).toFixed(2)} บาท จาก ${memberName} ?`)) return;
+
+              const originalText = button.textContent;
+              button.disabled = true;
+              button.textContent = "กำลังบันทึก...";
+              button.classList.add("opacity-60", "cursor-not-allowed");
+
+              try {
+                const result = await apiPost("updateFineStatus", {
+                  FineId: fineId,
+                  Status: "Paid"
+                });
+                assertApiSuccess(result);
+                showToast("บันทึกการชำระค่าปรับสำเร็จ");
+                await loadDataFromBackend();
+              } catch (err) {
+                console.error("updateFineStatus failed:", err);
+                button.disabled = false;
+                button.textContent = originalText;
+                button.classList.remove("opacity-60", "cursor-not-allowed");
+                showToast("บันทึกการชำระค่าปรับไม่สำเร็จ: " + err.message, true);
+              }
+            }
+
+            function assertApiSuccess(result) {
+              let value = result;
+              if (value && typeof value === "object" && Object.prototype.hasOwnProperty.call(value, "d")) value = value.d;
+              if (typeof value === "string") {
+                const message = value.trim();
+                if (!message || /unsuccessful|not successful|failed|failure|error|ไม่สำเร็จ/i.test(message)) {
+                  throw new Error(message || "WCF ไม่ได้ส่งผลการบันทึกกลับมา");
+                }
+                if (/success|successful|สำเร็จ/i.test(message)) return true;
+                throw new Error(message);
+              }
+              if (value && typeof value === "object") {
+                const success = value.success ?? value.Success;
+                const message = value.message ?? value.Message ?? value.error ?? value.Error;
+                if (success === true) return true;
+                if (success === false) throw new Error(String(message || "WCF แจ้งว่าบันทึกไม่สำเร็จ"));
+                if (message && /unsuccessful|failed|failure|error|ไม่สำเร็จ/i.test(String(message))) throw new Error(String(message));
+                if (message && /success|successful|สำเร็จ/i.test(String(message))) return true;
+              }
+              throw new Error("รูปแบบผลลัพธ์จาก WCF ไม่ถูกต้อง หรือไม่มีการยืนยันว่าบันทึกสำเร็จ");
+            }
+
+            async function staffReturnBook(borrowId) {
+              try {
+                const result = await apiPost("returnBook", { BorrowId: borrowId });
+                const message = typeof result === "string" ? result : JSON.stringify(result);
+                if (!/successful|success|สำเร็จ/i.test(message)) throw new Error(message || "รับคืนไม่สำเร็จ");
+                showToast("รับคืนหนังสือเรียบร้อย");
+                await loadDataFromBackend();
+              } catch (err) {
+                showToast("รับคืนไม่สำเร็จ: " + err.message, true);
+              }
+            }
+
+            // Current WCF interface exposes GET, borrowBook and returnBook only.
+            // These two UI actions are intentionally not sent to nonexistent /api routes.
+            function adminAddBook() {
+              showToast("ยังเพิ่มหนังสือผ่าน API ไม่ได้: ต้องเพิ่ม AddBook endpoint ใน WCF ก่อน", true);
+            }
+            function adminAddMember() {
+              showToast("ยังลงทะเบียนสมาชิกผ่าน API ไม่ได้: ต้องเพิ่ม AddMember endpoint ใน WCF ก่อน", true);
+            }
+
+            function renderAll() {
+              renderMemberCatalog();
+              renderStaffPortal();
+            }
+
+            loadDataFromBackend();
+    </script>
+</body>
+</html>

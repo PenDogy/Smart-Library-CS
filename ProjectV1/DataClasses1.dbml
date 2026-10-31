@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8"?><Database Name="SmartLibraryDB" Class="DataClasses1DataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Table Name="dbo.Book" Member="Books">
+    <Type Name="Book">
+      <Column Name="Book_Id" Type="System.String" DbType="VarChar(50) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Cat_Id" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Quantity" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="[Desc]" Member="Desc" Type="System.String" DbType="NVarChar(MAX)" CanBeNull="true" />
+      <Column Name="Title" Type="System.String" DbType="NVarChar(200) NOT NULL" CanBeNull="false" />
+      <Column Name="Author" Type="System.String" DbType="NVarChar(150)" CanBeNull="true" />
+      <Column Name="Publisher" Type="System.String" DbType="NVarChar(150)" CanBeNull="true" />
+      <Column Name="PublishY" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Association Name="Book_Book_Copy" Member="Book_Copies" ThisKey="Book_Id" OtherKey="Book_Id" Type="Book_Copy" />
+      <Association Name="Category_Book" Member="Category" ThisKey="Cat_Id" OtherKey="Cat_Id" Type="Category" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Reservation" Member="Reservations">
+    <Type Name="Reservation">
+      <Column Name="Reservation_Id" Type="System.String" DbType="VarChar(50) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Copy_Id" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Member_Id" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Pickup_date" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="Date_due" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="Status" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Association Name="Book_Copy_Reservation" Member="Book_Copy" ThisKey="Copy_Id" OtherKey="Copy_Id" Type="Book_Copy" IsForeignKey="true" />
+      <Association Name="Member_Reservation" Member="Member" ThisKey="Member_Id" OtherKey="Member_Id" Type="Member" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Book_Copies" Member="Book_Copies">
+    <Type Name="Book_Copy">
+      <Column Name="Copy_Id" Type="System.String" DbType="VarChar(50) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Book_Id" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Shelf_location" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Price" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Status" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Association Name="Book_Copy_Reservation" Member="Reservations" ThisKey="Copy_Id" OtherKey="Copy_Id" Type="Reservation" />
+      <Association Name="Book_Copy_Borrowing" Member="Borrowings" ThisKey="Copy_Id" OtherKey="Copy_Id" Type="Borrowing" />
+      <Association Name="Book_Book_Copy" Member="Book" ThisKey="Book_Id" OtherKey="Book_Id" Type="Book" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Borrowing" Member="Borrowings">
+    <Type Name="Borrowing">
+      <Column Name="Borrow_Id" Type="System.String" DbType="VarChar(50) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Member_Id" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Copy_Id" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Date_Taken" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="Date_Due" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="Return_Date" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="Status" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Fine_Id" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Association Name="Book_Copy_Borrowing" Member="Book_Copy" ThisKey="Copy_Id" OtherKey="Copy_Id" Type="Book_Copy" IsForeignKey="true" />
+      <Association Name="Fine_Borrowing" Member="Fine" ThisKey="Fine_Id" OtherKey="Fine_Id" Type="Fine" IsForeignKey="true" />
+      <Association Name="Member_Borrowing" Member="Member" ThisKey="Member_Id" OtherKey="Member_Id" Type="Member" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Category" Member="Categories">
+    <Type Name="Category">
+      <Column Name="Cat_Id" Type="System.String" DbType="VarChar(50) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="CatName" Type="System.String" DbType="NVarChar(100) NOT NULL" CanBeNull="false" />
+      <Column Name="[Desc]" Member="Desc" Type="System.String" DbType="NVarChar(255)" CanBeNull="true" />
+      <Association Name="Category_Book" Member="Books" ThisKey="Cat_Id" OtherKey="Cat_Id" Type="Book" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Fines" Member="Fines">
+    <Type Name="Fine">
+      <Column Name="Fine_Id" Type="System.String" DbType="VarChar(50) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Status" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Amount" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Note" Type="System.String" DbType="NVarChar(255)" CanBeNull="true" />
+      <Association Name="Fine_Borrowing" Member="Borrowings" ThisKey="Fine_Id" OtherKey="Fine_Id" Type="Borrowing" />
+    </Type>
+  </Table>
+  <Table Name="dbo.Member" Member="Members">
+    <Type Name="Member">
+      <Column Name="Member_Id" Type="System.String" DbType="VarChar(50) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="Mt_Id" Type="System.String" DbType="VarChar(50)" CanBeNull="true" />
+      <Column Name="Status" Type="System.String" DbType="VarChar(20)" CanBeNull="true" />
+      <Column Name="Dues" Type="System.Double" DbType="Float" CanBeNull="true" />
+      <Column Name="Fname" Type="System.String" DbType="NVarChar(100) NOT NULL" CanBeNull="false" />
+      <Column Name="Lname" Type="System.String" DbType="NVarChar(100)" CanBeNull="true" />
+      <Column Name="Phonenum" Type="System.String" DbType="VarChar(20)" CanBeNull="true" />
+      <Column Name="R_Date" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="E_Date" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Column Name="Dues_Date" Type="System.DateTime" DbType="Date" CanBeNull="true" />
+      <Association Name="Member_Reservation" Member="Reservations" ThisKey="Member_Id" OtherKey="Member_Id" Type="Reservation" />
+      <Association Name="Member_Borrowing" Member="Borrowings" ThisKey="Member_Id" OtherKey="Member_Id" Type="Borrowing" />
+      <Association Name="MemberType_Member" Member="MemberType" ThisKey="Mt_Id" OtherKey="Mt_Id" Type="MemberType" IsForeignKey="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.MemberType" Member="MemberTypes">
+    <Type Name="MemberType">
+      <Column Name="Mt_Id" Type="System.String" DbType="VarChar(50) NOT NULL" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="[Desc]" Member="Desc" Type="System.String" DbType="NVarChar(100)" CanBeNull="true" />
+      <Column Name="MaxQuota" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Column Name="LoanDays" Type="System.Int32" DbType="Int" CanBeNull="true" />
+      <Association Name="MemberType_Member" Member="Members" ThisKey="Mt_Id" OtherKey="Mt_Id" Type="Member" />
+    </Type>
+  </Table>
+</Database>
